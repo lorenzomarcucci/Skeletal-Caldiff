@@ -306,7 +306,7 @@ for anls=1:2 %with or without PVA
             
             
             
-            [t,x]=ode15s(@(t,x) diff_diffusion_soce_auto(t,x,Hz,on,pvb_p,p_soce,anl_p,ratio_2,...
+            [t,x]=ode15s(@(t,x) diff_diffusion_GitHub(t,x,Hz,on,pvb_p,p_soce,anl_p,ratio_2,...
                 n, m, m_SR, m_Tr, Voltofunc, CSQtofunc, MitoBtofunc, Bcitotofunc, K_D_R, K_D_L, indextofunc, mcu_syl), tspan,x0,optToll);
             
             
