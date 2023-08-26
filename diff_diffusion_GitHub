@@ -1,0 +1,519 @@
+%functions
+function xdot=diff_diffusion_GitHub(t,x,Hz,on,pvb_p,p_soce,anl_p,ratio_2,...
+    n, m, m_SR, m_Tr, Voltofunc, CSQtofunc, MitoBtofunc, Bcitotofunc, K_D_R, K_D_L, indextofunc, mcu_syl)
+
+
+
+
+%Volumes
+[V_max, V_Tr, V_TC, V_SR, V_EF, V_mito, V_tub]=Voltofunc.v;
+
+
+%CSQ values
+[S_tot, S2_tot, ks_on, ks_off, ks2_on, ks2_off, n_csq, CaS2_fact, CaS_fact]=CSQtofunc.v;
+
+%Mito values
+[MB1_tot, MB2_tot, kmb1_on, kmb1_off, kmb2_on, kmb2_off, n_mb2]=MitoBtofunc.v;
+
+%Indexing
+[Mg_b, CaPV_b, MgPV_b, Fura_b, Tr1_b, Tr2_b, CaS_b, CaS, CaS2, Mito_free, Mito_bound1, Mito_bound2, Ttubule_free, Ttubule_bound, all_var]=indextofunc.v;
+
+
+%Citosolic buffers
+[CaP_fact, CaMg_fact,...
+    CaT_fact, P_tot, Fura_tot, kf_on, kf_off, M_PVMG_internal_index, Tr_tot, M_Tr_index, K_D_R_Mg, K_D_L_Mg, ktr1_on, ktr1_off, ktr2_on, ktr2_off, n_trp1, n_trp2, kp_on, kp_off,...
+    km_on, km_off, TtubB_tot, n_BTtub, kTtb_on, kTtb_off, k_soce_off]=Bcitotofunc.v;
+
+%interp1(f_time,k_TC,t); % Interpolate the data set (f_time,k_TC) at time t
+k_TC = k_TC_t(t,x(m_SR+(n-2)*m),Hz,on,pvb_p,anl_p);
+
+
+
+
+xdot=zeros(CaS_b+5,1);
+
+
+
+for i=1:n
+    
+    for j=1:m
+        
+        if j<=m_Tr
+            T_fact=0;
+        else
+            T_fact=1;
+        end
+        %%%%%%% Myofibrillar space first
+        if i==1
+            if j==1
+                xdot(j+(i-1)*m)=4*K_D_R*((x(j+(i)*m)-x(j+(i-1)*m)))+...
+                    K_D_L*(x(j+(i-1)*m+1)-x(j+(i-1)*m))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            elseif j==m
+                xdot(j+(i-1)*m)=4*K_D_R*((x(j+(i)*m)-x(j+(i-1)*m)))+...
+                    K_D_L*(-x(j+(i-1)*m)+x(j+(i-1)*m-1))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            else
+                xdot(j+(i-1)*m)=4*K_D_R*((x(j+(i)*m)-x(j+(i-1)*m)))+...
+                    K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            end
+            %%%%%%% Myofibrillar space last
+        elseif i==n-2
+            if j==1
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*((2*(i-1)+1)*x(j+(i)*m)-...
+                    4*(i-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-x(j+(i-1)*m))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            elseif j==m_SR+1+pvb_p %position of mito for m=20 (2 or 1 blocks away)
+                vol_tmp=((i-1+0.5)^2-(max(0,i-2+0.5))^2)/n^2*V_max/m;
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*((2*(i-1)+1)*x(j+(i)*m)-...
+                    4*(i-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    -V_max/vol_tmp*(mcu_syl*Jnce(x(Mito_free),x(j+(i-1)*m),V_max,V_mito,x(Mg_b+m*(n-3)+m_SR+pvb_p+1)))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            elseif j==m
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*((2*(i-1)+1)*x(j+(i)*m)-...
+                    4*(i-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(-x(j+(i-1)*m)+x(j+(i-1)*m-1))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            else
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*((2*(i-1)+1)*x(j+(i)*m)-...
+                    4*(i-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            end
+            %%%%%%% Extramyofibrillar space
+        elseif i==n-1
+            if j==1
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*(-(2*(i-1)-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-x(j+(i-1)*m))...
+                    -up(x(j+(i-1)*m),m,pvb_p,anl_p)*V_max/V_EF+leak(x(j+(i)*m),m)*V_max/V_EF...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            elseif j==m_SR
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*(-(2*(i-1)-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    +k_TC*(x(j+(i)*m)-x(j+(i-1)*m))*V_max/V_EF...
+                    -up(x(j+(i-1)*m),m,pvb_p,anl_p)*V_max/V_EF+leak(x(j+(i)*m),m)*V_max/V_EF...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m))...
+                    -(1-pvb_p)*p_soce*(J_out(x(Ttubule_free),x((n-2)*(m)+j),CaS_fact))*V_max/V_EF...
+                    +(1-pvb_p)*p_soce*(Jsoce(x(m*n),x(Ttubule_free),CaS_fact))*V_max/V_EF;
+            elseif j==m_SR+1
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*(-(2*(i-1)-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    -up(x(j+(i-1)*m),m,pvb_p,anl_p)*V_max/V_EF+leak(x(j+(i)*m),m)*V_max/V_EF...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -pvb_p*p_soce*(J_out(x(Ttubule_free),x((n-2)*(m)+j),CaS_fact))*V_max/V_EF...
+                    +pvb_p*p_soce*(Jsoce(x(m*n),x(Ttubule_free),CaS_fact))*V_max/V_EF;
+            elseif j==m
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*(-(2*(i-1)-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(-x(j+(i-1)*m)+x(j+(i-1)*m-1))...
+                    -up(x(j+(i-1)*m),m,pvb_p,anl_p)*V_max/V_EF+leak(x(j+(i)*m),m)*V_max/V_EF...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            else
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*(-(2*(i-1)-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    -up(x(j+(i-1)*m),m,pvb_p,anl_p)*V_max/V_EF+leak(x(j+(i)*m),m)*V_max/V_EF...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            end
+        elseif i==n %Sarcoplasmic reticulum
+            if j==1
+                xdot(j+(i-1)*m)=K_D_L*(x(j+(i-1)*m+1)-x(j+(i-1)*m))...
+                    +up(x(j+(i-2)*m),m,pvb_p,anl_p)*V_max/V_SR-leak(x(j+(i-1)*m),m)*V_max/V_SR;
+                
+            elseif j==m_SR-1
+                xdot(j+(i-1)*m)=K_D_L*(V_max/V_SR*(x(j+(i-1)*m+1)-x(j+(i-1)*m))-(x(j+(i-1)*m)-x(j+(i-1)*m-1 )))...
+                    +up(x(j+(i-2)*m),m,pvb_p,anl_p)*V_max/V_SR-leak(x(j+(i-1)*m),m)*V_max/V_SR;
+                
+            elseif j==m_SR%Terminal Cistern
+                xdot(j+(i-1)*m)=K_D_L*V_max/V_TC*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    -k_TC*(x(j+(i-1)*m)-x(j+(i-2)*m))*V_max/V_TC...
+                    +up(x(j+(i-2)*m),m,pvb_p,anl_p)*V_max/V_TC-leak(x(j+(i-1)*m),m)*V_max/V_TC...
+                    -(ks_on*x(j+(i-1)*m)^n_csq*(S_tot-x(CaS))-ks_off*x(CaS))...
+                    -(ks2_on*x(j+(i-1)*m)*(S2_tot-x(CaS2))-ks2_off*x(CaS2));
+                
+            elseif j==m_SR+1
+                xdot(j+(i-1)*m)=K_D_L*((x(j+(i-1)*m+1)-x(j+(i-1)*m))-V_max/V_SR*(x(j+(i-1)*m)-x(j+(i-1)*m-1 )))...
+                    +up(x(j+(i-2)*m),m,pvb_p,anl_p)*V_max/V_SR-leak(x(j+(i-1)*m),m)*V_max/V_SR;
+                
+            elseif j==m
+                xdot(j+(i-1)*m)=K_D_L*((-x(j+(i-1)*m)+x(j+(i-1)*m-1)))...
+                    +up(x(j+(i-2)*m),m,pvb_p,anl_p)*V_max/V_SR-leak(x(j+(i-1)*m),m)*V_max/V_SR;
+                
+            else
+                xdot(j+(i-1)*m)=K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1 ))...
+                    +up(x(j+(i-2)*m),m,pvb_p,anl_p)*V_max/V_SR-leak(x(j+(i-1)*m),m)*V_max/V_SR;
+            end
+            
+        else  %Inside myoplasm
+            if j == 1
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*((2*(i-1)+1)*x(j+(i)*m)-...
+                    4*(i-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-x(j+(i-1)*m))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            elseif j == m
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*((2*(i-1)+1)*x(j+(i)*m)-...
+                    4*(i-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(-x(j+(i-1)*m)+x(j+(i-1)*m-1))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            else
+                xdot(j+(i-1)*m)=K_D_R/(2*(i-1))*((2*(i-1)+1)*x(j+(i)*m)-...
+                    4*(i-1)*x(j+(i-1)*m)+(2*(i-1)-1)*x(j+(i-2)*m))+...
+                    K_D_L*(x(j+(i-1)*m+1)-2*x(j+(i-1)*m)+x(j+(i-1)*m-1))...
+                    -(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m))...
+                    -T_fact*(ktr1_on*x(j+(i-1)*m)^n_trp1*(Tr_tot-x(Tr1_b+j+(i-1)*m)-x(Tr2_b+j+(i-1)*m))-ktr1_off*x(Tr1_b+j+(i-1)*m)...
+                    +(ktr2_on*x(j+(i-1)*m)^n_trp2*(x(Tr1_b+j+(i-1)*m))-ktr2_off*x(Tr2_b+j+(i-1)*m)))...
+                    -(kp_on*x(j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-kp_off*x(CaPV_b+j+(i-1)*m));
+            end
+        end
+    end
+end
+
+%%%%% system of equations for the [Mg]
+for i=1:n-1
+    
+    for j=1:m
+        
+        %%%%%%% Myofibrillar space first
+        if i==1
+            if j==1
+                xdot(Mg_b+j+(i-1)*m)=4*K_D_R_Mg*((x(Mg_b+j+(i)*m)-x(Mg_b+j+(i-1)*m)))+...
+                    K_D_L_Mg*(x(Mg_b+j+(i-1)*m+1)-x(Mg_b+j+(i-1)*m))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            elseif j==m
+                xdot(Mg_b+j+(i-1)*m)=4*K_D_R_Mg*((x(Mg_b+j+(i)*m)-x(Mg_b+j+(i-1)*m)))+...
+                    K_D_L_Mg*(-x(Mg_b+j+(i-1)*m)+x(Mg_b+j+(i-1)*m-1))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            else
+                xdot(Mg_b+j+(i-1)*m)=4*K_D_R_Mg*((x(Mg_b+j+(i)*m)-x(Mg_b+j+(i-1)*m)))+...
+                    K_D_L_Mg*(x(Mg_b+j+(i-1)*m+1)-2*x(Mg_b+j+(i-1)*m)+x(Mg_b+j+(i-1)*m-1 ))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            end
+            
+            %%%%%%% Extramyofibrillar space
+        elseif i==n-1
+            if j==1
+                xdot(Mg_b+j+(i-1)*m)=K_D_R_Mg/(2*(i-1))*(-(2*(i-1)-1)*x(Mg_b+j+(i-1)*m)+(2*(i-1)-1)*x(Mg_b+j+(i-2)*m))+...
+                    K_D_L_Mg*(x(Mg_b+j+(i-1)*m+1)-x(Mg_b+j+(i-1)*m))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            elseif j==m
+                xdot(Mg_b+j+(i-1)*m)=K_D_R_Mg/(2*(i-1))*(-(2*(i-1)-1)*x(Mg_b+j+(i-1)*m)+(2*(i-1)-1)*x(Mg_b+j+(i-2)*m))+...
+                    K_D_L_Mg*(-x(Mg_b+j+(i-1)*m)+x(Mg_b+j+(i-1)*m-1))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            else
+                xdot(Mg_b+j+(i-1)*m)=K_D_R_Mg/(2*(i-1))*(-(2*(i-1)-1)*x(Mg_b+j+(i-1)*m)+(2*(i-1)-1)*x(Mg_b+j+(i-2)*m))+...
+                    K_D_L_Mg*(x(Mg_b+j+(i-1)*m+1)-2*x(Mg_b+j+(i-1)*m)+x(Mg_b+j+(i-1)*m-1))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            end
+            
+            %Inside myoplasm
+        else
+            if j == 1
+                xdot(Mg_b+j+(i-1)*m)=K_D_R_Mg/(2*(i-1))*((2*(i-1)+1)*x(Mg_b+j+(i)*m)-...
+                    4*(i-1)*x(Mg_b+j+(i-1)*m)+(2*(i-1)-1)*x(Mg_b+j+(i-2)*m))+...
+                    K_D_L_Mg*(x(Mg_b+j+(i-1)*m+1)-x(Mg_b+j+(i-1)*m))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            elseif j == m
+                xdot(Mg_b+j+(i-1)*m)=K_D_R_Mg/(2*(i-1))*((2*(i-1)+1)*x(Mg_b+j+(i)*m)-...
+                    4*(i-1)*x(Mg_b+j+(i-1)*m)+(2*(i-1)-1)*x(Mg_b+j+(i-2)*m))+...
+                    K_D_L_Mg*(-x(Mg_b+j+(i-1)*m)+x(Mg_b+j+(i-1)*m-1))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            else
+                xdot(Mg_b+j+(i-1)*m)=K_D_R_Mg/(2*(i-1))*((2*(i-1)+1)*x(Mg_b+j+(i)*m)-...
+                    4*(i-1)*x(Mg_b+j+(i-1)*m)+(2*(i-1)-1)*x(Mg_b+j+(i-2)*m))+...
+                    K_D_L_Mg*(x(Mg_b+j+(i-1)*m+1)-2*x(Mg_b+j+(i-1)*m)+x(Mg_b+j+(i-1)*m-1))...
+                    -(km_on*x(Mg_b+j+(i-1)*m)*(P_tot-x(CaPV_b+j+(i-1)*m)-x(MgPV_b+j+(i-1)*m))-km_off*x(MgPV_b+j+(i-1)*m));
+            end
+        end
+    end
+end
+
+%%%%% system of equations for the FURA-2
+K_D_R_F=K_D_R;
+K_D_L_F=K_D_L;
+
+for i=1:n-1
+    
+    for j=1:m
+        
+        %%%%%%% Myofibrillar space first
+        if i==1
+            if j==1
+                xdot(Fura_b+j+(i-1)*m)=4*K_D_R_F*((x(Fura_b+j+(i)*m)-x(Fura_b+j+(i-1)*m)))+...
+                    K_D_L_F*(x(Fura_b+j+(i-1)*m+1)-x(Fura_b+j+(i-1)*m))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            elseif j==m
+                xdot(Fura_b+j+(i-1)*m)=4*K_D_R_F*((x(Fura_b+j+(i)*m)-x(Fura_b+j+(i-1)*m)))+...
+                    K_D_L_F*(-x(Fura_b+j+(i-1)*m)+x(Fura_b+j+(i-1)*m-1))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            else
+                xdot(Fura_b+j+(i-1)*m)=4*K_D_R_F*((x(Fura_b+j+(i)*m)-x(Fura_b+j+(i-1)*m)))+...
+                    K_D_L_F*(x(Fura_b+j+(i-1)*m+1)-2*x(Fura_b+j+(i-1)*m)+x(Fura_b+j+(i-1)*m-1 ))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            end
+            
+            %%%%%%% Extramyofibrillar space
+        elseif i==n-1
+            if j==1
+                xdot(Fura_b+j+(i-1)*m)=K_D_R_F/(2*(i-1))*(-(2*(i-1)-1)*x(Fura_b+j+(i-1)*m)+(2*(i-1)-1)*x(Fura_b+j+(i-2)*m))+...
+                    K_D_L_F*(x(Fura_b+j+(i-1)*m+1)-x(Fura_b+j+(i-1)*m))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            elseif j==m
+                xdot(Fura_b+j+(i-1)*m)=K_D_R_F/(2*(i-1))*(-(2*(i-1)-1)*x(Fura_b+j+(i-1)*m)+(2*(i-1)-1)*x(Fura_b+j+(i-2)*m))+...
+                    K_D_L_F*(-x(Fura_b+j+(i-1)*m)+x(Fura_b+j+(i-1)*m-1))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            else
+                xdot(Fura_b+j+(i-1)*m)=K_D_R_F/(2*(i-1))*(-(2*(i-1)-1)*x(Fura_b+j+(i-1)*m)+(2*(i-1)-1)*x(Fura_b+j+(i-2)*m))+...
+                    K_D_L_F*(x(Fura_b+j+(i-1)*m+1)-2*x(Fura_b+j+(i-1)*m)+x(Fura_b+j+(i-1)*m-1))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            end
+            
+            %Inside myoplasm
+        else
+            if j == 1
+                xdot(Fura_b+j+(i-1)*m)=K_D_R_F/(2*(i-1))*((2*(i-1)+1)*x(Fura_b+j+(i)*m)-...
+                    4*(i-1)*x(Fura_b+j+(i-1)*m)+(2*(i-1)-1)*x(Fura_b+j+(i-2)*m))+...
+                    K_D_L_F*(x(Fura_b+j+(i-1)*m+1)-x(Fura_b+j+(i-1)*m))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            elseif j == m
+                xdot(Fura_b+j+(i-1)*m)=K_D_R_F/(2*(i-1))*((2*(i-1)+1)*x(Fura_b+j+(i)*m)-...
+                    4*(i-1)*x(Fura_b+j+(i-1)*m)+(2*(i-1)-1)*x(Fura_b+j+(i-2)*m))+...
+                    K_D_L_F*(-x(Fura_b+j+(i-1)*m)+x(Fura_b+j+(i-1)*m-1))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            else
+                xdot(Fura_b+j+(i-1)*m)=K_D_R_F/(2*(i-1))*((2*(i-1)+1)*x(Fura_b+j+(i)*m)-...
+                    4*(i-1)*x(Fura_b+j+(i-1)*m)+(2*(i-1)-1)*x(Fura_b+j+(i-2)*m))+...
+                    K_D_L_F*(x(Fura_b+j+(i-1)*m+1)-2*x(Fura_b+j+(i-1)*m)+x(Fura_b+j+(i-1)*m-1))...
+                    +(kf_on*x(j+(i-1)*m)*(Fura_tot-x(Fura_b+j+(i-1)*m))-kf_off*x(Fura_b+j+(i-1)*m));
+            end
+        end
+    end
+end
+
+%%%%%%%%%%%%% PARVALBUMIN occupied by Calcium %%%%%%%%%%%%%%%%%%
+
+xdot(CaPV_b+1:CaPV_b+m+(n-1-1)*m)=(kp_on*x(1:m+(n-1-1)*m).*(P_tot-x(CaPV_b+1:CaPV_b+m+(n-1-1)*m)...
+    -x(MgPV_b+1:MgPV_b+m+(n-1-1)*m))-kp_off*x(CaPV_b+1:CaPV_b+m+(n-1-1)*m));
+
+%%%%%%%%%%%%% PARVALBUMIN occupied by Magnesium %%%%%%%%%%%%%%%%%%
+
+xdot(MgPV_b+1:MgPV_b+m+(n-1-1)*m)=(km_on*x(Mg_b+1:Mg_b+m+(n-1-1)*m).*(P_tot-x(CaPV_b+1:CaPV_b+m+(n-1-1)*m)...
+    -x(MgPV_b+1:MgPV_b+m+(n-1-1)*m))-km_off*x(MgPV_b+1:MgPV_b+m+(n-1-1)*m));
+
+
+%%%%%%%%%%%%% Troponin1 %%%%%%%%%%%%%%%%%%%%%%%
+
+xdot(Tr1_b+M_Tr_index)=(ktr1_on*x(M_Tr_index).^n_trp1.*(Tr_tot-x(Tr1_b+M_Tr_index)-x(Tr2_b+M_Tr_index))-...
+    ktr1_off*x(Tr1_b+M_Tr_index)-ktr2_on*x(M_Tr_index).^n_trp2.*(x(Tr1_b+M_Tr_index))+ktr2_off*x(Tr2_b+M_Tr_index));
+
+
+%%%%%%%%%%%%% Troponin2 %%%%%%%%%%%%%%%%%%%%%%%
+
+xdot(Tr2_b+M_Tr_index)=ktr2_on*x(M_Tr_index).^n_trp2.*(x(Tr1_b+M_Tr_index))-ktr2_off*x(Tr2_b+M_Tr_index);
+
+
+
+%%%%%%system of equations for buffers Calsequestrin AND Mitochondrium
+
+xdot(CaS)=(ks_on*x(m*(n-1)+m_SR)^n_csq*(S_tot-x(CaS))-ks_off*x(CaS));
+xdot(CaS2)=(ks2_on*x(m*(n-1)+m_SR)*(S2_tot-x(CaS2))-ks2_off*x(CaS2));
+
+xdot(Mito_free) = V_max/V_mito*(mcu_syl*Jnce(x(Mito_free),x(m*(n-3)+m_SR+pvb_p+1),V_max,V_mito,x(Mg_b+m*(n-3)+m_SR+pvb_p+1)))...
+    -(kmb1_on*x(Mito_free)*(MB1_tot-x(Mito_bound1))-kmb1_off*x(Mito_bound1))...
+    -(kmb2_on*x(Mito_free)^n_mb2*(MB2_tot-x(Mito_bound2))-kmb2_off*x(Mito_bound2));
+xdot(Mito_bound1)=kmb1_on*x(Mito_free)*(MB1_tot-x(Mito_bound1))-kmb1_off*x(Mito_bound1);
+xdot(Mito_bound2)=kmb2_on*x(Mito_free)^n_mb2*(MB2_tot-x(Mito_bound2))-kmb2_off*x(Mito_bound2);
+
+xdot(Ttubule_free) = p_soce*(-Jsoce(x(m*n),x(Ttubule_free),CaS_fact)+...
+    J_out(x(Ttubule_free),x((n-2)*m+m_SR+pvb_p),CaS_fact))*V_max/V_tub...
+    -kTtb_on*x(Ttubule_free)^n_BTtub*(TtubB_tot-x(Ttubule_bound))+kTtb_off*x(Ttubule_bound);
+xdot(Ttubule_bound) = kTtb_on*x(Ttubule_free)^n_BTtub*(TtubB_tot-x(Ttubule_bound))-kTtb_off*x(Ttubule_bound);
+
+end
+
+function [y] = Jnce(c_m, c_i, V_max, V_mito, c_Mg)
+
+Q10_MCU=2^((25-16)/10); %to regulate the 8 µM/s provided by BH2007 at 16 degrees
+
+Mg_fact=1.5;%1.5-c_Mg^n_Mg/(Kd_Mg^n_Mg+c_Mg^n_Mg); %approx 1 at 1mM and 0.5 at 1.7 mM
+
+fast=100;
+F=96485.3365; %C mol-1
+R=8.314472; %J⋅K−1⋅mol−1
+T=300.15;   %K
+c_m_t=0.16;
+c_i_t=0.1;
+
+X_nce = 10*800*fast*1e-3*3.37/3.67; % Activity of NCE microM s-1
+psi_i=0.5*F/(R*T)*0.19;%(145e-3-log(c_m_t/c_i_t)*R*T/(2*F));
+Na_i = (10e3/(8.2e3))^3;%[Na+]i^3/K_Na,mNCE^3 microM/microM citosolyc
+Na_m = (5e3/(V_max-V_mito)/(8.2e3))^3;%[Na+]i^3/K_Na,mNCE^3 microM/microM mitochondrium
+
+K_Ca = 2.1; %Ca binding constant of mNCE microM from Dash and Beard 2008
+
+num = exp(psi_i)*Na_i*c_m_t/K_Ca-exp(-psi_i)*Na_m*c_i_t/K_Ca; %numeratore
+den = 1+Na_i+c_m_t/K_Ca+Na_i*c_m_t/K_Ca+Na_m+c_i_t/K_Ca+Na_m*c_i_t/K_Ca; %denominatore
+off_1=X_nce*num/den;
+
+
+V_MCU = 50*40*4*Q10_MCU*Mg_fact; %µMs-1 per liter of fiber, value needed
+
+h = 2; %Parameter of Hill's equation
+k_d = 20;% da Drago Pizzo Pozzan et al. prima 1.2; %microM, MCU coefficient da 30 di Calderon 2021
+off_2=V_MCU*c_i_t^h/(c_i_t^h+k_d^h);
+Joffset=off_1-off_2; % microM s-1
+num_mcu=c_i^h;%(c_i-c_i_t)^h;
+den_mcu=k_d^h+c_i^h;%(c_i-c_i_t)^h;
+
+psi=0.5*F/(R*T)*0.19;
+
+num = exp(psi)*Na_i*c_m/K_Ca-exp(-psi)*Na_m*c_i/K_Ca; %numeratore
+den = 1+Na_i+c_m/K_Ca+Na_i*c_m/K_Ca+Na_m+c_i/K_Ca+Na_m*c_i/K_Ca; %denominatore
+
+y=Joffset+V_MCU*num_mcu/den_mcu- X_nce*num/den;
+
+end
+
+function [y] = leak(c,m)
+
+Q10=2^((25-20)/10);
+F_max =4e3*Q10;%*ratio; %micromolar s-1 l-1 di fibra
+k_m = 0.5; %micromolar
+n=2;%data from micromolar s-1 l-1 from Journal of Muscle...
+%Research and Cell Motility (2021) 42:1–16 (Barxclay
+%Launikonis 2021) (Lmax adapted to different basal
+c=0.1;
+y = F_max/m*c^n/(c^n+k_m^n);
+
+end
+
+function [y] = up(c,m,pvb_p,anl_p)
+
+Q10=2^((25-20)/10);
+F_max =4e3*Q10;%*ratio; %micromolar s-1 l-1 di fibra
+k_m = 0.5; %micromolar
+n=2;%data from micromolar s-1 l-1 from Journal of Muscle...
+%Research and Cell Motility (2021) 42:1–16 (Barxclay
+%Launikonis 2021) (Lmax adapted to different basal
+y = F_max/m*c^n/(c^n+k_m^n);
+
+end
+
+function [y] = k_TC_t(time_act,c,Hz,on,pvb_p,anl_p)
+
+F_max=3.12*40000/(1100-27);%36000/(1100-27);
+R_max=0.5; %radius
+L_max=1.1; %length half sar1comere
+V_max=pi*R_max^2*L_max; %Vol micrometer^3
+
+f_time=0:1/1000:1;
+
+delay=9.e-1; % BH12
+
+Ryr_leak=0;%(1-l_fact-(0.5-l_fact)*pvb_p-(0.5-l_fact)*(1-anl_p))*1.*0.0061*91.5;
+
+
+off_sign=on+delay;
+tau_1=1*1e-3; %rising time constant (CA84) 0 (HB2007)
+tau_2=5*1e-3;%-3*1e-3*(pvb_p-1); %decay time constant (CA84)0 (HB2007)
+max_flux=max((1-exp(-(f_time-delay)/tau_1)).*exp(-(f_time-delay)/tau_2));
+if time_act <= off_sign
+    time=mod(time_act-delay,1/Hz);
+else
+    time=time_act-off_sign+mod(off_sign-delay,1/Hz);
+end
+
+if time_act <= delay
+    y=Ryr_leak;
+else
+    y=1/max_flux*F_max*(1-exp(-time/tau_1))*exp(-time/tau_2);
+    
+end
+
+end
+
+%-------------- SOCE and OUT---------------%
+
+function [y] = Jsoce(c_SR,c_e,CaS_fact)
+h=4.7; % [31] in Calderon 2021
+Kd=350;%µM [31] in Calderon 2021
+V_max = 1.0e1; %Launikonis 2010 10µM s-1 per fiber liter Calderon 2021 35 µMs-1
+y = V_max*(1-(c_SR)^h/((c_SR)^h+Kd^h));
+
+end
+
+function [y] = J_out(c_ext,c_cito,CaS_fact)
+
+F=96485.3365;
+R=8.314472;
+T=300.15;
+psi=0.5*F/(R*T)*0.08;%(145e-3-log(c_m/c_i)*R*T/(2*F));
+
+c_cito_b=0.1; %basal citosolic calcium concentration
+c_ext_b=1e3; %basal Ttubule concentration
+K_Cancx=3;% µM from (doi:10.1016/0005-2736(89)90491-4)
+K_Nancx=14e3;% µM from (doi:10.1016/0005-2736(89)90491-4)
+Na_ext=140e3;% µM from Calderon 2021
+Na_cito=10e3;% µM from Calderon 2021
+
+
+fast=1;
+X_nce = fast*4; % From Lamboley et al 2021, previously fast*120; % Activity of NCE microM s-1
+Na_i = (Na_ext/K_Nancx)^3;%[Na+]i^3/K_Na,mNCE^3 microM/microM citosolyc
+Na_m = (Na_cito/(K_Nancx))^3;%[Na+]i^3/K_Na,mNCE^3 microM/microM mitochondrium
+
+
+%%%%%%%%%%%equilibrateing Jsoce basal%%%%%%%%%%%
+c_SR=5e2;
+h=4.7; % [31] in Calderon 2021
+Kd=350;%µM [31] in Calderon 2021
+V_max = 1.0e1; %Launikonis 2010 10µM s-1 per fiber liter Calderon 2021 35 µMs-1
+Jeq = V_max*(1-(c_SR)^h/((c_SR)^h+Kd^h));%basal soce flux
+
+
+num = exp(psi)*Na_i*c_cito_b/K_Cancx-exp(-psi)*Na_m*c_ext_b/K_Cancx; %numeratore
+den = 1+Na_i+c_cito_b/K_Cancx+Na_i*c_cito_b/K_Cancx+Na_m+c_ext_b/K_Cancx+Na_m*c_ext_b/K_Cancx; %denominatore
+Joffset=X_nce*num/den; %basal NCX flux
+
+%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%
+
+
+
+num = exp(psi)*Na_i*c_cito/K_Cancx-exp(-psi)*Na_m*c_ext/K_Cancx; %numeratore
+den = 1+Na_i+c_cito/K_Cancx+Na_i*c_cito/K_Cancx+Na_m+c_ext/K_Cancx+Na_m*c_ext/K_Cancx; %denominatore
+
+y=X_nce*num/den - Joffset + Jeq;
+
+end
